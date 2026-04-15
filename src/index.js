@@ -117,7 +117,7 @@ async function startOutboxPoller() {
       }
     } catch (err) {
       logger.error({ err: err.message }, 'Outbox poller error');
-      try { await conn.rollback(); } catch (rollbackErr) { logger.warn({ err: rollbackErr.message }, 'Outbox poller rollback failed'); }
+      try { await conn.rollback(); } catch (error_) { logger.warn({ err: error_.message }, 'Outbox poller rollback failed'); }
       conn.release();
     }
   }, 5000); // every 5 seconds
@@ -167,7 +167,7 @@ async function startSagaRecoveryPoller() {
       }
     } catch (err) {
       logger.error({ err: err.message }, 'Saga recovery poller error');
-      try { await conn.rollback(); } catch (rollbackErr) { logger.warn({ err: rollbackErr.message }, 'Saga recovery rollback failed'); }
+      try { await conn.rollback(); } catch (error_) { logger.warn({ err: error_.message }, 'Saga recovery rollback failed'); }
       conn.release();
     }
   }, 30000); // every 30 seconds
@@ -244,7 +244,7 @@ async function init() {
     return p;
   }, 'MySQL');
 
-  const mqConn = await connectWithRetry(async () => {
+  await connectWithRetry(async () => {
     const conn = await amqp.connect(MQ_URL);
     mqChannel = await conn.createChannel();
     await mqChannel.assertExchange(EXCHANGE, 'topic', { durable: true });
@@ -277,14 +277,18 @@ app.get('/health/liveness', async (req, res, next) => {
   try {
     await pool.execute('SELECT 1');
     res.json({ status: 'UP', service: 'transaction-service' });
-  } catch (err) { next(createError(503, 'HEALTH_CHECK_FAILED', 'DB ping failed')); }
+  } catch (err) {
+    next(createError(503, 'HEALTH_CHECK_FAILED', 'DB ping failed'));
+  }
 });
 app.get('/health/readiness', async (req, res, next) => {
   try {
     if (!isStarted) throw new Error('Not ready');
     await pool.execute('SELECT 1');
     res.json({ status: 'READY', service: 'transaction-service' });
-  } catch (err) { next(createError(503, 'NOT_READY', 'Not ready')); }
+  } catch (err) {
+    next(createError(503, 'NOT_READY', 'Not ready'));
+  }
 });
 app.get('/health', (req, res) => res.json({ status: 'UP', service: 'transaction-service' }));
 
@@ -301,7 +305,7 @@ app.post('/transfer', async (req, res, next) => {
   if (fromAccountId == toAccountId) {
     return next(createError(400, 'VALIDATION_ERROR', 'Cannot transfer to the same account'));
   }
-  if (isNaN(amount) || Number(amount) <= 0) {
+  if (Number.isNaN(Number(amount)) || Number(amount) <= 0) {
     return next(createError(400, 'VALIDATION_ERROR', 'Amount must be a positive number'));
   }
 
@@ -484,8 +488,8 @@ app.get('/transactions', async (req, res, next) => {
 // â”€â”€ Get Flagged Transactions (Admin only) â”€â”€â”€â”€â”€â”€
 app.get('/transactions/flagged', authMiddleware, adminMiddleware, async (req, res, next) => {
   try {
-    const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 15));
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 15));
     const offset = (page - 1) * limit;
 
     const [transactions] = await pool.execute(
@@ -606,9 +610,13 @@ async function shutdown(signal) {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
-init().catch(err => {
-  logger.fatal({ err }, 'transaction-service failed to initialise');
-  process.exit(1);
-});
+(async () => {
+  try {
+    await init();
+  } catch (err) {
+    logger.fatal({ err }, 'transaction-service failed to initialise');
+    process.exit(1);
+  }
+})();
 
 
