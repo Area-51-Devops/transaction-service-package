@@ -20,12 +20,9 @@ RUN --mount=type=secret,id=npm_token \
   rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 COPY src ./src
-
 USER node
 
 EXPOSE 3003
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
   CMD wget -qO- http://localhost:3003/health/startup || exit 1
 CMD ["node", "src/index.js"]
-
-
