@@ -1,16 +1,13 @@
 FROM node:20-alpine
 WORKDIR /usr/src/app
-
 # Upgrade all OS packages to latest patched versions
 RUN apk update && apk upgrade --no-cache
-
 # Build-time arg for GitHub Packages authentication.
 # Passed in by the CI pipeline via --build-arg NODE_AUTH_TOKEN=<token>.
 # Written to .npmrc for the install step, then deleted so it never
 # survives into the final image layer.
 # Docker context is the repo root ('.'), not services/ — paths are bare.
 COPY package*.json ./
-
 # We mount a docker secret file representing the token during the run
 RUN --mount=type=secret,id=npm_token \
   echo "//npm.pkg.github.com/:_authToken=$(cat /run/secrets/npm_token)" > .npmrc && \
