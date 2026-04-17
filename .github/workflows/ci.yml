@@ -1,4 +1,4 @@
-name: Service-discovery CI
+name: Transaction-service CI
 
 on:
   push:
