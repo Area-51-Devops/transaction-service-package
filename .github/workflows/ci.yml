@@ -1,22 +1,38 @@
-name: CI
+name: Service-discovery CI
 
 on:
   push:
-    branches: [main]
+    paths:
+      - 'services/transaction-service/**'
+      - 'services/shared/**'
   pull_request:
+    paths:
+      - 'services/transaction-service/**'
+      - 'services/shared/**'
+  workflow_dispatch:
 
 jobs:
   ci:
+    uses: Area-51-Devops/ci-templates/.github/workflows/common-ci.yml@main
     permissions:
-      contents: write
+      contents: write      
       packages: read
-    uses: Area-51-Devops/shared-lib/.github/workflows/common-ci.yml@main
     with:
-      working_directory: '.'
-      image_name: 'transaction-service'
+      working_directory: "services/transaction-service"
+      image_name: "services/transaction-service"
+      service-name: "transaction-service"
+      docker_context: "services"
+      dockerfile_path: "transaction-service/Dockerfile"
       run_build: false
-      sonar_project_key: 'NexusBank'
-      docker_context: '.'
-      dockerfile_path: 'Dockerfile'
-      service-name: 'transaction-service'
-    secrets: inherit
+      sonar_project_key: "transaction-service"
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      SMTP_HOST: ${{ secrets.SMTP_HOST }}
+      SMTP_PORT: ${{ secrets.SMTP_PORT }}
+      SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      EMAIL_TO: ${{ secrets.EMAIL_TO }}
