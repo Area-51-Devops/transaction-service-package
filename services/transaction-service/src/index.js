@@ -271,7 +271,11 @@ app.use(requestIdMiddleware);
 
 // ── Health Probes ──────────────────────────────
 app.get('/health/startup', (req, res) => {
-  res.json({ status: isStarted ? 'UP' : 'STARTING', service: 'transaction-service' });
+  const statusPayload = { status: isStarted ? 'UP' : 'STARTING', service: 'transaction-service' };
+  if (!isStarted) {
+    return res.status(503).json(statusPayload);
+  }
+  res.json(statusPayload);
 });
 app.get('/health/liveness', async (req, res, next) => {
   try {
