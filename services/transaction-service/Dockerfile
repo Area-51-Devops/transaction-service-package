@@ -1,7 +1,7 @@
 ﻿FROM node:20-alpine
 WORKDIR /usr/src/app
 
-# Upgrade all OS packages to latest patched versions.
+# Upgrade all OS packages to latest patched versions...
 RUN apk update && apk upgrade --no-cache
 
 # Context is ./services, so copy paths must be relative to the services/ directory...
